@@ -115,13 +115,6 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
 
         foreach ($object->getResourceNameCollection() as $resourceClass) {
 
-
-
-            if($resourceClass != "ApiPlatform\Core\Tests\Fixtures\TestBundle\Entity\ContainNonResource")
-            {
-                continue;
-            }
-
             $resourceMetadata = $this->resourceMetadataFactory->create($resourceClass);
 
             $resourceShortName = $resourceMetadata->getShortName();
@@ -432,12 +425,10 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
             $definitionSchema['externalDocs'] = ['url' => $iri];
         }
 
-
-
         $options = isset($serializerContext[AbstractNormalizer::GROUPS]) ? ['serializer_groups' => $serializerContext[AbstractNormalizer::GROUPS]] : [];
         foreach ($this->propertyNameCollectionFactory->create($resourceClass, $options) as $propertyName) {
-            $propertyMetadata = $this->propertyMetadataFactory->create($resourceClass, $propertyName);
 
+            $propertyMetadata = $this->propertyMetadataFactory->create($resourceClass, $propertyName);
 
             $normalizedPropertyName = $this->nameConverter ? $this->nameConverter->normalize($propertyName) : $propertyName;
 
@@ -460,8 +451,6 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
     private function getPropertySchema(PropertyMetadata $propertyMetadata, \ArrayObject $definitions, array $serializerContext = null): \ArrayObject
     {
         $propertySchema = new \ArrayObject($propertyMetadata->getAttributes()['swagger_context'] ?? []);
-
-
 
         if (false === $propertyMetadata->isWritable()) {
             $propertySchema['readOnly'] = true;
