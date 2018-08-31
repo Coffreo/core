@@ -147,22 +147,27 @@ final class SerializerPropertyMetadataFactory implements PropertyMetadataFactory
             return [$options['serializer_groups'], $options['serializer_groups']];
         }
 
-        $resourceMetadata = $this->resourceMetadataFactory->create($resourceClass);
-        if (isset($options['collection_operation_name'])) {
-            $normalizationContext = $resourceMetadata->getCollectionOperationAttribute($options['collection_operation_name'], 'normalization_context', null, true);
-            $denormalizationContext = $resourceMetadata->getCollectionOperationAttribute($options['collection_operation_name'], 'denormalization_context', null, true);
-        } elseif (isset($options['item_operation_name'])) {
-            $normalizationContext = $resourceMetadata->getItemOperationAttribute($options['item_operation_name'], 'normalization_context', null, true);
-            $denormalizationContext = $resourceMetadata->getItemOperationAttribute($options['item_operation_name'], 'denormalization_context', null, true);
-        } elseif (isset($options['graphql_operation_name'])) {
-            $normalizationContext = $resourceMetadata->getGraphqlAttribute($options['graphql_operation_name'], 'normalization_context', null, true);
-            $denormalizationContext = $resourceMetadata->getGraphqlAttribute($options['graphql_operation_name'], 'denormalization_context', null, true);
-        } else {
-            $normalizationContext = $resourceMetadata->getAttribute('normalization_context');
-            $denormalizationContext = $resourceMetadata->getAttribute('denormalization_context');
+        try{
+            $resourceMetadata = $this->resourceMetadataFactory->create($resourceClass);
+            if (isset($options['collection_operation_name'])) {
+                $normalizationContext = $resourceMetadata->getCollectionOperationAttribute($options['collection_operation_name'], 'normalization_context', null, true);
+                $denormalizationContext = $resourceMetadata->getCollectionOperationAttribute($options['collection_operation_name'], 'denormalization_context', null, true);
+            } elseif (isset($options['item_operation_name'])) {
+                $normalizationContext = $resourceMetadata->getItemOperationAttribute($options['item_operation_name'], 'normalization_context', null, true);
+                $denormalizationContext = $resourceMetadata->getItemOperationAttribute($options['item_operation_name'], 'denormalization_context', null, true);
+            } elseif (isset($options['graphql_operation_name'])) {
+                $normalizationContext = $resourceMetadata->getGraphqlAttribute($options['graphql_operation_name'], 'normalization_context', null, true);
+                $denormalizationContext = $resourceMetadata->getGraphqlAttribute($options['graphql_operation_name'], 'denormalization_context', null, true);
+            } else {
+                $normalizationContext = $resourceMetadata->getAttribute('normalization_context');
+                $denormalizationContext = $resourceMetadata->getAttribute('denormalization_context');
+            }
+
+            return [$normalizationContext['groups'] ?? null, $denormalizationContext['groups'] ?? null];
+        }catch (ResourceClassNotFoundException $resourceNotFound){
+            return [null,null];
         }
 
-        return [$normalizationContext['groups'] ?? null, $denormalizationContext['groups'] ?? null];
     }
 
     /**
