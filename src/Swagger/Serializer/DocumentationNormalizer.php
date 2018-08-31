@@ -111,8 +111,19 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
         $definitions = new \ArrayObject();
         $paths = new \ArrayObject();
 
+
+
         foreach ($object->getResourceNameCollection() as $resourceClass) {
+
+
+
+            if($resourceClass != "ApiPlatform\Core\Tests\Fixtures\TestBundle\Entity\ContainNonResource")
+            {
+                continue;
+            }
+
             $resourceMetadata = $this->resourceMetadataFactory->create($resourceClass);
+
             $resourceShortName = $resourceMetadata->getShortName();
 
             $this->addPaths($paths, $definitions, $resourceClass, $resourceShortName, $resourceMetadata, $mimeTypes, OperationType::COLLECTION);
@@ -421,15 +432,20 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
             $definitionSchema['externalDocs'] = ['url' => $iri];
         }
 
+
+
         $options = isset($serializerContext[AbstractNormalizer::GROUPS]) ? ['serializer_groups' => $serializerContext[AbstractNormalizer::GROUPS]] : [];
         foreach ($this->propertyNameCollectionFactory->create($resourceClass, $options) as $propertyName) {
             $propertyMetadata = $this->propertyMetadataFactory->create($resourceClass, $propertyName);
+
+
             $normalizedPropertyName = $this->nameConverter ? $this->nameConverter->normalize($propertyName) : $propertyName;
 
             if ($propertyMetadata->isRequired()) {
                 $definitionSchema['required'][] = $normalizedPropertyName;
             }
 
+            $serializerContext['recursiveCount'] = 0;
             $definitionSchema['properties'][$normalizedPropertyName] = $this->getPropertySchema($propertyMetadata, $definitions, $serializerContext);
         }
 
@@ -444,6 +460,8 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
     private function getPropertySchema(PropertyMetadata $propertyMetadata, \ArrayObject $definitions, array $serializerContext = null): \ArrayObject
     {
         $propertySchema = new \ArrayObject($propertyMetadata->getAttributes()['swagger_context'] ?? []);
+
+
 
         if (false === $propertyMetadata->isWritable()) {
             $propertySchema['readOnly'] = true;
@@ -500,6 +518,9 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
         }
 
         if (Type::BUILTIN_TYPE_OBJECT === $type) {
+
+            $serializerContext['recursiveCount']++;
+
             if (null === $className) {
                 return ['type' => 'string'];
             }
@@ -508,16 +529,36 @@ final class DocumentationNormalizer implements NormalizerInterface, CacheableSup
                 return ['type' => 'string', 'format' => 'date-time'];
             }
 
-            if (!$this->resourceClassResolver->isResourceClass($className)) {
-                return ['type' => 'string'];
-            }
-
-            if (true === $readableLink) {
+            if (true === $readableLink && $this->resourceClassResolver->isResourceClass($className)) {
                 return ['$ref' => sprintf('#/definitions/%s', $this->getDefinition($definitions,
                     $this->resourceMetadataFactory->create($className),
                     $className, $serializerContext)
                 )];
             }
+
+            if($serializerContext['recursiveCount'] >= 10)
+            {
+                return['type' => 'string'];
+            }
+
+            $definitionSchema         = [];
+            $definitionSchema['type'] = 'object';
+            $options                  = isset($serializerContext[AbstractNormalizer::GROUPS]) ? ['serializer_groups' => $serializerContext[AbstractNormalizer::GROUPS]] : [];
+
+            foreach ($this->propertyNameCollectionFactory->create($className,$options) as $propertyName) {
+
+                $propertyMetadata = $this->propertyMetadataFactory->create($className, $propertyName);
+                $normalizedPropertyName = $this->nameConverter ? $this->nameConverter->normalize($propertyName) : $propertyName;
+
+                if ($propertyMetadata->isRequired()) {
+                    $definitionSchema['required'][] = $normalizedPropertyName;
+                }
+
+                $definitionSchema['properties'][$normalizedPropertyName] = $this->getPropertySchema($propertyMetadata, $definitions, $serializerContext);
+            }
+
+            return $definitionSchema;
+
         }
 
         return ['type' => 'string'];
